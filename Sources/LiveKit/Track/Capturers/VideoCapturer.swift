@@ -59,6 +59,12 @@ public class VideoCapturer: NSObject, @unchecked Sendable, Loggable, VideoCaptur
     /// `kCVPixelFormatType_32ARGB`.
     public static let supportedPixelFormats = LKRTCCVPixelBuffer.supportedPixelFormats()
 
+    /// 10-bit bi-planar formats (an HDR camera's HLG or PQ frames), passed on as they are to an encoder that codes them,
+    /// one set with ``LiveKitSDK/set(videoEncoderFactory:)`` (HEVC Main10). WebRTC carries the buffer untouched to the
+    /// encoder; its own encoders and its scaling to I420 take only ``supportedPixelFormats``.
+    public static let tenBitPixelFormats: [OSType] = [kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange,
+                                                      kCVPixelFormatType_420YpCbCr10BiPlanarFullRange]
+
     public static func createTimeStampNs() -> Int64 {
         let systemTime = ProcessInfo.processInfo.systemUptime
         return Int64(systemTime * Double(NSEC_PER_SEC))
@@ -219,7 +225,9 @@ extension VideoCapturer {
     {
         // check if pixel format is supported by WebRTC
         let pixelFormat = CVPixelBufferGetPixelFormatType(pixelBuffer)
-        guard VideoCapturer.supportedPixelFormats.contains(where: { $0.uint32Value == pixelFormat }) else {
+        guard VideoCapturer.supportedPixelFormats.contains(where: { $0.uint32Value == pixelFormat })
+            || VideoCapturer.tenBitPixelFormats.contains(pixelFormat)
+        else {
             // kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
             // kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
             // kCVPixelFormatType_32BGRA
