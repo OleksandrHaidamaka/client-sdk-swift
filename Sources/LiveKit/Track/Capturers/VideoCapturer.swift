@@ -60,8 +60,8 @@ public class VideoCapturer: NSObject, @unchecked Sendable, Loggable, VideoCaptur
     public static let supportedPixelFormats = LKRTCCVPixelBuffer.supportedPixelFormats()
 
     /// 10-bit bi-planar formats (an HDR camera's HLG or PQ frames), passed on as they are to an encoder that codes them,
-    /// one set with ``LiveKitSDK/set(videoEncoderFactory:)`` (HEVC Main10). WebRTC carries the buffer untouched to the
-    /// encoder; its own encoders and its scaling to I420 take only ``supportedPixelFormats``.
+    /// one set with ``LiveKitSDK/set(videoEncoderFactory:)`` (HEVC Main10). WebRTC carries the buffer untouched to such an
+    /// encoder; its own encoders and its scaling read an 8-bit copy of the frame (`TenBitPixelBuffer`).
     public static let tenBitPixelFormats: [OSType] = [kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange,
                                                       kCVPixelFormatType_420YpCbCr10BiPlanarFullRange]
 
@@ -244,7 +244,9 @@ extension VideoCapturer {
             return
         }
 
-        let rtcBuffer = LKRTCCVPixelBuffer(pixelBuffer: pixelBuffer)
+        let rtcBuffer = VideoCapturer.tenBitPixelFormats.contains(pixelFormat)
+            ? TenBitPixelBuffer(pixelBuffer: pixelBuffer)
+            : LKRTCCVPixelBuffer(pixelBuffer: pixelBuffer)
         let rtcFrame = LKRTCVideoFrame(buffer: rtcBuffer,
                                        rotation: rotation.toRTCType(),
                                        timeStampNs: timeStampNs)
